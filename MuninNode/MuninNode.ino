@@ -1,17 +1,33 @@
 /*
- Arduino Munin Node
+ ESP8266 1-wire Munin Node
 
+ Copyright (c) 2017 Alejandro Suarez Cebrian <alejandro@asuarez.es>
+ Copyright (c) 2015 Hristo Gochkov. 
  (CC) 2014, 'Aztec Eagle' Turbo <turbo@ier.unam.mx>
  (CC) 2014, Instituto de Energías Renovables, UNAM
   
- A simple munin node that shows the value of each analog inputs
- using an Arduino Ethernet shield, or an Arduino Ethernet board.
+ A simple munin node that shows the value of 1-wire divices conected to
+ an ESP8266 board.
 
- (The Arduino Ethernet board with PoE it's a beauty!)
+ Based in "Arduino Munin Node" from 'Aztec Eagle' Turbo and 
+ WiFiTelnetToSerial - Example Transparent UART to Telnet Server for esp8266
+ from Hristo Gochkov.
 
- Supported by UNAM DGAPA Proyecto PAPIME PE101814 
-   Conjunto de Prácticas de Instrumentación y Control basadas en 
-   Hardware y Software Libre para Energías Renovables
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
  */
 
 #define DEBUG 1
