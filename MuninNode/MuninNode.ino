@@ -33,45 +33,86 @@
 #define DEBUG 1
 #define FS(X) String(F(X))
 
-#include <SPI.h>
-#include <Ethernet.h>
+#include <ESP8266WiFi.h>
+
+#include <OneWire.h>
+#include <DallasTemperature.h>
+
 
 // Change as your needs!
-String nodename = "arduino";
-byte mac[] = {0x90, 0xA2, 0xDA, 0xF0, 0x0F, 0x00};
-byte ip[] = {192,168,209,111};
-byte ns[] = {192,168,209,254};
-byte gw[] = {192,168,209,254};
-byte nm[] = {255,255,255,0};
+String nodename = "esp8266";
+#define MAX_SRV_CLIENTS 1
+const char* ssid = "*******";
+const char* password = "**********";
 
-// Initialize the Ethernet server library
+// Initialize the esp8266 server library
 // with the IP address and port you want to use
 // (port 4949 is default for munin):
-EthernetServer server(4949);
+WiFiServer server(4949);
+WiFiClient serverClients[MAX_SRV_CLIENTS];
+
+// Initialize the 1-wire library with the
+// GPIO port
+
+#define ONE_WIRE_BUS 2  // DS18B20 pin
+OneWire oneWire(ONE_WIRE_BUS);
+DallasTemperature DS18B20(&oneWire);
+
+float getTemp(int id) {
+  float temp;
+  do {
+    DS18B20.requestTemperatures(); 
+    temp = DS18B20.getTempCByIndex(id);
+#if DEBUG
+    Serial.print("Temperature");
+    Serial.print(id);
+    Serial.print(": ");
+    Serial.println(temp);
+#endif
+  } while (temp == 85.0 || temp == (-127.0));
+
+  return temp;
+  
+}
 
 void setup() {
 #if DEBUG
   // Open serial communications and wait for port to open:
-  Serial.begin(9600);
-  while (!Serial) ;// wait for serial port to connect. Needed for Leonardo only
+  Serial.begin(115200);
   Serial.println("Initializing...");
 #endif
   // start the Ethernet connection and the server:
-  Ethernet.begin(mac,ip,ns,gw,nm);
+  WiFi.begin(ssid, password);
+#if DEBUG
+  Serial.print("\nConnecting to "); Serial.println(ssid);
+#endif
+  uint8_t i = 0;
+  while (WiFi.status() != WL_CONNECTED && i++ < 20) delay(500);
+  if(i == 21){
+#if DEBUG    
+    Serial.print("Could not connect to"); Serial.println(ssid);
+#endif
+    while(1) delay(500);
+  }
+
+  // start the server:
   server.begin();
+  server.setNoDelay(true);
+  
 #if DEBUG
   Serial.print("Server is at ");
-  Serial.println(Ethernet.localIP());
+  Serial.print(WiFi.localIP());
+  Serial.println(":4949");
 #endif
   // setup your stuff
-  pinMode(13, OUTPUT);
+
 }
 
 void loop() {
   // listen for incoming clients
-  EthernetClient client = server.available();
+  WiFiClient client = server.available();
   if (client) {
-    digitalWrite(13, HIGH); // turn the LED on
+    //digitalWrite(13, HIGH); // turn the LED on
 #if DEBUG
     Serial.println("New client");
 #endif
@@ -88,7 +129,7 @@ void loop() {
 #endif
         if (command.startsWith(FS("quit"))) break;
         if (command.startsWith(FS("version"))) {
-          client.print(FS("munins node on ") + nodename + FS(" version: 1.0.0\n"));
+          client.print(FS("munin node on ") + nodename + FS(" version: 1.0.0\n"));
           continue;
         }
         if (command.startsWith(FS("list"))) {
@@ -110,8 +151,9 @@ void loop() {
           char ch = command.charAt(7);
           if (ch>='0' && ch<='5') {
             // read the input on analog pin 0:
-            int sensorValue = analogRead(A0 + ch - '0');
+            // int sensorValue = analogRead(A0 + ch - '0');
             // float voltage = 5.0 * sensorValue / 1024;
+            float sensorValue = getTemp(ch - '0');
 #if DEBUG
             Serial.print("ADC.value ");
             Serial.println(sensorValue);
@@ -134,7 +176,7 @@ void loop() {
 #if DEBUG
     Serial.println("Client disconnected");
 #endif
-    digitalWrite(13, LOW); // turn the LED off
+    //digitalWrite(13, LOW); // turn the LED off
   }
 }
 
