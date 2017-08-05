@@ -58,14 +58,19 @@ WiFiClient serverClients[MAX_SRV_CLIENTS];
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature DS18B20(&oneWire);
 
-float getTemp(int id) {
+#define MAX_W1_DEVICES 32
+// arrays to hold device addresses
+DeviceAddress Thermometer[MAX_W1_DEVICES];
+int w1devices;
+
+float getTemp(DeviceAddress id) {
   float temp;
   do {
     DS18B20.requestTemperatures(); 
-    temp = DS18B20.getTempCByIndex(id);
+    temp = DS18B20.getTempC(id);
 #if DEBUG
     Serial.print("Temperature");
-    Serial.print(id);
+    printAddress(id);
     Serial.print(": ");
     Serial.println(temp);
 #endif
@@ -73,6 +78,35 @@ float getTemp(int id) {
 
   return temp;
   
+}
+
+// function to print a device address
+void printAddress(DeviceAddress deviceAddress)
+{
+  for (uint8_t i = 0; i < 8; i++)
+  {
+    // zero pad the address if necessary
+    if (deviceAddress[i] < 16) Serial.print("0");
+    Serial.print(deviceAddress[i], HEX);
+  }
+}
+
+// function to print the temperature for a device
+void printTemperature(DeviceAddress deviceAddress)
+{
+  float tempC = DS18B20.getTempC(deviceAddress);
+  Serial.print("Temp C: ");
+  Serial.print(tempC);
+  Serial.print(" Temp F: ");
+  Serial.print(DallasTemperature::toFahrenheit(tempC));
+}
+
+// function to print a device's resolution
+void printResolution(DeviceAddress deviceAddress)
+{
+  Serial.print("Resolution: ");
+  Serial.print(DS18B20.getResolution(deviceAddress));
+  Serial.println();    
 }
 
 void setup() {
@@ -104,6 +138,40 @@ void setup() {
   Serial.print(WiFi.localIP());
   Serial.println(":4949");
 #endif
+
+
+  // initialize 1-wire library
+  DS18B20.begin();
+  
+  // locate devices on the bus
+  w1devices = DS18B20.getDeviceCount();
+#if DEBUG
+  Serial.print("Locating devices...");
+  Serial.print("Found ");
+  Serial.print(w1devices, DEC);
+  Serial.println(" devices.");
+
+  // report parasite power requirements
+  Serial.print("Parasite power is: "); 
+  if (DS18B20.isParasitePowerMode()) Serial.println("ON");
+  else Serial.println("OFF");
+#endif
+  for (int dev = 0; dev < w1devices; dev++)
+  {
+    if (!DS18B20.getAddress(Thermometer[dev], dev)) {
+#if DEBUG
+      Serial.print("Unable to find address for Device ");
+      Serial.println(dev);
+#endif
+    } else {
+      Serial.print("Sensor ");
+      Serial.print(dev);
+      Serial.print(": ");
+      printAddress(Thermometer[dev]);
+      Serial.println();
+    }
+  }
+  
   // setup your stuff
 
 }
@@ -133,36 +201,35 @@ void loop() {
           continue;
         }
         if (command.startsWith(FS("list"))) {
-          client.print(FS("a0 a1 a2 a3 a4 a5\n"));
+          client.print(FS("esp_w1_temp \n"));
           continue;
         }
-        if (command.startsWith(FS("config a"))) {
-          char ch = command.charAt(8);
-          if (ch>='0' && ch<='5') {
-              client.print(FS("graph_title Analog Input A") + String(ch - '0') + '\n');
-              // client.print(FS("graph_args -l 0 --upper-limit 1024\n"));
-              // client.print(FS("graph_scale no\n"));
-              // client.print(FS("graph_category arduino\n"));
-              client.print(FS("sensor.label Digital value\n.\n"));
-          } else client.print(FS("# Unknown service\n.\n"));
+        if (command.startsWith(FS("config esp_w1_temp"))) {
+          client.print(FS("graph_title ESP8266 OneWire Temperature\n"));
+          client.print(FS("graph_vlabel Temperature in Celsius\n"));
+          client.print(FS("graph_category Sensors\n"));
+          for (int dev = 0; dev < w1devices; dev++) {
+            client.print(FS("temp") + (dev + 1) + ".warning 30\n");
+            client.print(FS("temp") + (dev + 1) + ".critical 40\n");
+            client.print(FS("temp") + (dev + 1) + ".label "); 
+            for (uint8_t i = 0; i < 8; i++)
+            {
+              // zero pad the address if necessary
+              if (Thermometer[dev][i] < 16) client.print("0");
+              client.print(Thermometer[dev][i], HEX);
+            }
+            client.print(FS("\n"));
+          }
+          client.print(FS(".\n"));
           continue;
         }
-        if (command.startsWith(FS("fetch a"))) {
-          char ch = command.charAt(7);
-          if (ch>='0' && ch<='5') {
-            // read the input on analog pin 0:
-            // int sensorValue = analogRead(A0 + ch - '0');
-            // float voltage = 5.0 * sensorValue / 1024;
-            float sensorValue = getTemp(ch - '0');
-#if DEBUG
-            Serial.print("ADC.value ");
-            Serial.println(sensorValue);
-#endif
-            client.print(FS("sensor.value ")
-                       + String(sensorValue) 
-                       + FS("\n.\n"));
-            continue;
-          } else client.print(FS("# Unknown service\n.\n")); 
+        if (command.startsWith(FS("fetch esp_w1_temp"))) {
+          for (int dev = 0; dev < w1devices; dev++) {
+            float temp = getTemp(Thermometer[dev]);
+            String STemp = String(temp, 3);
+            client.print(FS("temp") + (dev + 1) + ".value " + STemp + "\n.\n");
+
+          }
           continue;
         }
         // no command catched
