@@ -63,6 +63,14 @@ DallasTemperature DS18B20(&oneWire);
 DeviceAddress Thermometer[MAX_W1_DEVICES];
 int w1devices;
 
+uint64_t millis64() {
+    static uint32_t low32, high32;
+    uint32_t new_low32 = millis();
+    if (new_low32 < low32) high32++;
+    low32 = new_low32;
+    return (uint64_t) high32 << 32 | low32;
+}
+
 float getTemp(DeviceAddress id) {
   float temp;
   do {
@@ -116,6 +124,7 @@ void setup() {
   Serial.println("Initializing...");
 #endif
   // start the Ethernet connection and the server:
+  WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
 #if DEBUG
   Serial.print("\nConnecting to "); Serial.println(ssid);
@@ -201,7 +210,7 @@ void loop() {
           continue;
         }
         if (command.startsWith(FS("list"))) {
-          client.print(FS("esp_w1_temp \n"));
+          client.print(FS("esp_w1_temp uptime\n"));
           continue;
         }
         if (command.startsWith(FS("config esp_w1_temp"))) {
@@ -227,9 +236,26 @@ void loop() {
           for (int dev = 0; dev < w1devices; dev++) {
             float temp = getTemp(Thermometer[dev]);
             String STemp = String(temp, 3);
-            client.print(FS("temp") + (dev + 1) + ".value " + STemp + "\n.\n");
+            client.print(FS("temp") + (dev + 1) + ".value " + STemp + "\n");
 
           }
+          client.print(FS(".\n"));
+          continue;
+        }
+        if (command.startsWith(FS("config uptime"))) {
+          client.print(FS("graph_title Uptime\n"));
+          client.print(FS("graph_args --base 1000 -l 0\n"));
+          client.print(FS("graph_scale no\n"));
+          client.print(FS("graph_vlabel uptime in days\n"));
+          client.print(FS("graph_category system\n"));
+          client.print(FS("uptime.label uptime\n"));
+          client.print(FS("uptime.draw AREA\n"));
+          client.print(FS(".\n"));
+          continue;
+        }
+        if (command.startsWith(FS("fetch uptime"))) {
+          String Suptime = String((float)millis64() / (1000*60*60*24),3);
+          client.print(FS("uptime.value ") + Suptime + "\n.\n");
           continue;
         }
         // no command catched
