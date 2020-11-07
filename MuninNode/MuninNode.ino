@@ -31,7 +31,7 @@
  */
 
 #define DEBUG 1
-#define FS(X) String(F(X))
+#define FString(X) String(F(X))
 
 #include <ESP8266WiFi.h>
 
@@ -193,7 +193,7 @@ void loop() {
 #if DEBUG
     Serial.println("New client");
 #endif
-    client.print(FS("# munin node at ") + nodename + '\n');
+    client.print(FString("# munin node at ") + nodename + '\n');
 
     while (client.connected()) {
       if (client.available()) {
@@ -204,62 +204,62 @@ void loop() {
 #if DEBUG
         Serial.println(command);
 #endif
-        if (command.startsWith(FS("quit"))) break;
-        if (command.startsWith(FS("version"))) {
-          client.print(FS("munin node on ") + nodename + FS(" version: 1.0.0\n"));
+        if (command.startsWith(FString("quit"))) break;
+        if (command.startsWith(FString("version"))) {
+          client.print(FString("munin node on ") + nodename + FString(" version: 1.0.0\n"));
           continue;
         }
-        if (command.startsWith(FS("list"))) {
-          client.print(FS("esp_w1_temp uptime\n"));
+        if (command.startsWith(FString("list"))) {
+          client.print(FString("esp_w1_temp uptime\n"));
           continue;
         }
-        if (command.startsWith(FS("config esp_w1_temp"))) {
-          client.print(FS("graph_title ESP8266 OneWire Temperature\n"));
-          client.print(FS("graph_vlabel Temperature in Celsius\n"));
-          client.print(FS("graph_category Sensors\n"));
+        if (command.startsWith(FString("config esp_w1_temp"))) {
+          client.print(FString("graph_title ESP8266 OneWire Temperature\n"));
+          client.print(FString("graph_vlabel Temperature in Celsius\n"));
+          client.print(FString("graph_category Sensors\n"));
           for (int dev = 0; dev < w1devices; dev++) {
-            client.print(FS("temp") + (dev + 1) + ".warning 30\n");
-            client.print(FS("temp") + (dev + 1) + ".critical 40\n");
-            client.print(FS("temp") + (dev + 1) + ".label "); 
+            client.print(FString("temp") + (dev + 1) + ".warning 30\n");
+            client.print(FString("temp") + (dev + 1) + ".critical 40\n");
+            client.print(FString("temp") + (dev + 1) + ".label "); 
             for (uint8_t i = 0; i < 8; i++)
             {
               // zero pad the address if necessary
               if (Thermometer[dev][i] < 16) client.print("0");
               client.print(Thermometer[dev][i], HEX);
             }
-            client.print(FS("\n"));
+            client.print(FString("\n"));
           }
-          client.print(FS(".\n"));
+          client.print(FString(".\n"));
           continue;
         }
-        if (command.startsWith(FS("fetch esp_w1_temp"))) {
+        if (command.startsWith(FString("fetch esp_w1_temp"))) {
           for (int dev = 0; dev < w1devices; dev++) {
             float temp = getTemp(Thermometer[dev]);
             String STemp = String(temp, 3);
-            client.print(FS("temp") + (dev + 1) + ".value " + STemp + "\n");
+            client.print(FString("temp") + (dev + 1) + ".value " + STemp + "\n");
 
           }
-          client.print(FS(".\n"));
+          client.print(FString(".\n"));
           continue;
         }
-        if (command.startsWith(FS("config uptime"))) {
-          client.print(FS("graph_title Uptime\n"));
-          client.print(FS("graph_args --base 1000 -l 0\n"));
-          client.print(FS("graph_scale no\n"));
-          client.print(FS("graph_vlabel uptime in days\n"));
-          client.print(FS("graph_category system\n"));
-          client.print(FS("uptime.label uptime\n"));
-          client.print(FS("uptime.draw AREA\n"));
-          client.print(FS(".\n"));
+        if (command.startsWith(FString("config uptime"))) {
+          client.print(FString("graph_title Uptime\n"));
+          client.print(FString("graph_args --base 1000 -l 0\n"));
+          client.print(FString("graph_scale no\n"));
+          client.print(FString("graph_vlabel uptime in days\n"));
+          client.print(FString("graph_category system\n"));
+          client.print(FString("uptime.label uptime\n"));
+          client.print(FString("uptime.draw AREA\n"));
+          client.print(FString(".\n"));
           continue;
         }
-        if (command.startsWith(FS("fetch uptime"))) {
+        if (command.startsWith(FString("fetch uptime"))) {
           String Suptime = String((float)millis64() / (1000*60*60*24),3);
-          client.print(FS("uptime.value ") + Suptime + "\n.\n");
+          client.print(FString("uptime.value ") + Suptime + "\n.\n");
           continue;
         }
         // no command catched
-        client.print(FS("# Unknown command. Try list, config, fetch, version or quit\n"));
+        client.print(FString("# Unknown command. Try list, config, fetch, version or quit\n"));
       }
     }
     // give the web browser time to receive the data
@@ -272,4 +272,3 @@ void loop() {
     //digitalWrite(13, LOW); // turn the LED off
   }
 }
-
