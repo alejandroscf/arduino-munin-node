@@ -34,6 +34,7 @@
 #define FString(X) String(F(X))
 
 #include <ESP8266WiFi.h>
+#include <ESP8266HTTPClient.h>
 
 #include <OneWire.h>
 #include <DallasTemperature.h>
@@ -251,16 +252,42 @@ void loop() {
         }
         if (command.startsWith(FString("fetch esp_w1_temp"))) {
           lcd.clear();
+          lcd.setCursor(0, 0);
+          lcd.print("F: ");
+          lcd.setCursor(0, 1);
+          lcd.print("D: ");
+          
           for (int dev = 0; dev < w1devices; dev++) {
             float temp = getTemp(Thermometer[dev]);
             String STemp = String(temp, 3);
             client.print(FString("temp") + (dev + 1) + ".value " + STemp + "\n");
+
+//LCD stuff
+//TODO: Make it upadte by itself
             
-            lcd.setCursor(dev*4, 1);
-            lcd.print(STemp);
+            lcd.setCursor(3+dev*6, 1);
+            lcd.print(String(temp, 1) + "C");
 
           }
           client.print(FString(".\n"));
+
+
+          HTTPClient http;
+          http.begin("http://192.168.1.2/narancha.php");
+          int httpCode = http.GET();  //Send the request
+
+          if (httpCode > 0) {         //Check the returning code
+
+            String payload = http.getString();   //Get the request response payload
+            //Serial.println(payload);             //Print the response payload
+            lcd.setCursor(3, 0);
+            lcd.print(payload + "C");
+
+
+          }
+          http.end();
+
+          
           continue;
         }
         if (command.startsWith(FString("config uptime"))) {
