@@ -33,6 +33,28 @@
 #define DEBUG 0
 #define FString(X) String(F(X))
 
+/////////////////////////
+// PIN definition
+/////////////////////////
+
+// 1-wire -> gpio 2
+#define ONE_WIRE_BUS 2  // DS18B20 pin
+
+// I2C LCD module (SDA = GPIO1 = TX, SCL = GPIO3 = RX)
+#define LCD_SDA 1
+#define LCD_SCL 3
+// Original I2C LCD module (SDA = GPIO0, SCL = GPIO2)
+//#define LCD_SDA 0
+//#define LCD_SCL 2                   
+
+// BUTTON
+#define BUTTON_PIN 0  //Poner pull-up (igual ya lo lleva el circuitillo) actua al poner a masa
+
+/////////////////////////
+
+// Backlight timeout (in milliseconds)
+#define TIMEOUT 5000
+
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
 
@@ -47,11 +69,15 @@
 
 LiquidCrystal_I2C lcd(0x38, 16, 2);  // Configure LiquidCrystal_I2C library with 0x38 address, 16 columns and 2 rows
 
+
 // Change as your needs!
 String nodename = "esp8266";
 #define MAX_SRV_CLIENTS 1
 const char* ssid = "*******";
 const char* password = "**********";
+
+int buttonState=0;
+int buttonTime=0;
 
 // Initialize the esp8266 server library
 // with the IP address and port you want to use
@@ -62,7 +88,6 @@ WiFiClient serverClients[MAX_SRV_CLIENTS];
 // Initialize the 1-wire library with the
 // GPIO port
 
-#define ONE_WIRE_BUS 2  // DS18B20 pin
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature DS18B20(&oneWire);
 
@@ -158,7 +183,7 @@ void setup() {
 
   // initialize lcd library
   //lcd.begin(0, 2);                   // Initialize I2C LCD module (SDA = GPIO0, SCL = GPIO2)
-  lcd.begin(1, 3);                   // Initialize I2C LCD module (SDA = GPIO1 = TX, SCL = GPIO3 = RX)
+  lcd.begin(LCD_SDA, LCD_SCL);                   // Initialize I2C LCD module (SDA = GPIO1 = TX, SCL = GPIO3 = RX)
  
   lcd.backlight();                   // Turn backlight ON
 
@@ -200,10 +225,20 @@ void setup() {
   }
   
   // setup your stuff
+  pinMode(BUTTON_PIN,INPUT);
+
 
 }
 
 void loop() {
+  buttonState=digitalRead(BUTTON_PIN);
+  if (buttonState==LOW) {
+    buttonTime=millis64();
+    lcd.backlight();
+  }
+  if (buttonTime + TIMEOUT < millis64()) {
+    lcd.noBacklight();
+  }
   // listen for incoming clients
   WiFiClient client = server.available();
   if (client) {
