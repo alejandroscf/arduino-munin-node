@@ -53,7 +53,7 @@
 /////////////////////////
 
 // Backlight timeout (in milliseconds)
-#define TIMEOUT 5000
+#define TIMEOUT 15000
 
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
@@ -78,6 +78,7 @@ const char* password = "**********";
 
 int buttonState=0;
 int buttonTime=0;
+int buttonPressed=0;
 
 // Initialize the esp8266 server library
 // with the IP address and port you want to use
@@ -235,6 +236,7 @@ void loop() {
   if (buttonState==LOW) {
     buttonTime=millis64();
     lcd.backlight();
+    buttonPressed++;
   }
   if (buttonTime + TIMEOUT < millis64()) {
     lcd.noBacklight();
@@ -263,7 +265,7 @@ void loop() {
           continue;
         }
         if (command.startsWith(FString("list"))) {
-          client.print(FString("esp_w1_temp uptime\n"));
+          client.print(FString("esp_w1_temp uptime button_stats\n"));
           continue;
         }
         if (command.startsWith(FString("config esp_w1_temp"))) {
@@ -341,6 +343,27 @@ void loop() {
           client.print(FString("uptime.value ") + Suptime + "\n.\n");
           continue;
         }
+        if (command.startsWith(FString("fetch button_stats"))) {
+          client.print(FString("button_stats.value ") + buttonPressed + "\n.\n");
+          continue;
+        }
+        
+        if (command.startsWith(FString("config button_stats"))) {
+          client.print(FString("graph_title Button stats\n"));
+          client.print(FString("graph_args --base 1000 -l 0\n"));
+          client.print(FString("graph_scale no\n"));
+          client.print(FString("graph_vlabel times button pressed\n"));
+          client.print(FString("graph_category system\n"));
+          client.print(FString("button_stats.label button pressed\n"));
+          client.print(FString(".\n"));
+          continue;
+        }
+        if (command.startsWith(FString("light on"))) {
+          buttonTime=millis64();
+          lcd.backlight();
+          continue;
+        }
+        
         // no command catched
         client.print(FString("# Unknown command. Try list, config, fetch, version or quit\n"));
       }
