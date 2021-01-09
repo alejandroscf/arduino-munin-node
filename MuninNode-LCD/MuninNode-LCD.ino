@@ -153,17 +153,22 @@ void printResolution(DeviceAddress deviceAddress)
 //  Serial.println();    
 }
 
+ICACHE_RAM_ATTR void buttonJustPressed() {
+  buttonTime=millis64();
+  lcd.backlight();
+  buttonPressed++;  
+}
+
 void checkButton() {
   buttonState=digitalRead(BUTTON_PIN);
   if (buttonState != lastButtonState) { 
     if (buttonState==LOW) {
-      buttonTime=millis64();
-      lcd.backlight();
-      buttonPressed++;
+      buttonJustPressed();
     }
   }
   lastButtonState = buttonState;
-  
+}
+void checkTimeout() {
   if (buttonTime + TIMEOUT < millis64()) {
     lcd.noBacklight();
   }
@@ -175,6 +180,19 @@ void setup() {
   //Serial.begin(115200);
   //Serial.println("Initializing...");
 #endif
+
+  // initialize lcd library
+  //lcd.begin(0, 2);                   // Initialize I2C LCD module (SDA = GPIO0, SCL = GPIO2)
+  lcd.begin(LCD_SDA, LCD_SCL);                   // Initialize I2C LCD module (SDA = GPIO1 = TX, SCL = GPIO3 = RX)
+ 
+  lcd.backlight();                   // Turn backlight ON
+
+  lcd.setCursor(0, 0);               // Go to column 0, row 0
+  lcd.print("Connecting");
+
+  // Attach interrupt
+  //attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), buttonJustPressed, RISING);
+
   // start the Ethernet connection and the server:
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
@@ -187,8 +205,18 @@ void setup() {
 #if DEBUG    
     //Serial.print("Could not connect to"); Serial.println(ssid);
 #endif
+    lcd.setCursor(0, 0);               // Go to column 0, row 0
+    lcd.print("No WiFi");
+    lcd.setCursor(0, 1);               // Go to column 0, row 1
+    lcd.print("Restarting");
+    delay(60*1000);
+    ESP.restart();
+    
     while(1) delay(500);
   }
+  
+  lcd.setCursor(0, 0);               // Go to column 0, row 0
+  lcd.print(WiFi.localIP());
 
   // start the server:
   server.begin();
@@ -200,14 +228,7 @@ void setup() {
   //Serial.println(":4949");
 #endif
 
-  // initialize lcd library
-  //lcd.begin(0, 2);                   // Initialize I2C LCD module (SDA = GPIO0, SCL = GPIO2)
-  lcd.begin(LCD_SDA, LCD_SCL);                   // Initialize I2C LCD module (SDA = GPIO1 = TX, SCL = GPIO3 = RX)
- 
-  lcd.backlight();                   // Turn backlight ON
 
-  lcd.setCursor(0, 0);               // Go to column 0, row 0
-  lcd.print(WiFi.localIP());
 
   // initialize 1-wire library
   DS18B20.begin();
@@ -251,6 +272,7 @@ void setup() {
 
 void loop() {
   checkButton();
+  checkTimeout();
   // listen for incoming clients
   WiFiClient client = server.available();
   if (client) {
@@ -262,6 +284,7 @@ void loop() {
 
     while (client.connected()) {
       checkButton();
+      checkTimeout();
       if (client.available()) {
 #if DEBUG
         //Serial.println("readString...");
