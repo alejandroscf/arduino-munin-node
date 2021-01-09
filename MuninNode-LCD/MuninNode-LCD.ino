@@ -185,7 +185,7 @@ void setup() {
   //lcd.begin(0, 2);                   // Initialize I2C LCD module (SDA = GPIO0, SCL = GPIO2)
   lcd.begin(LCD_SDA, LCD_SCL);                   // Initialize I2C LCD module (SDA = GPIO1 = TX, SCL = GPIO3 = RX)
  
-  lcd.backlight();                   // Turn backlight ON
+  lcd.noBacklight();                   // Turn backlight OFF
 
   lcd.setCursor(0, 0);               // Go to column 0, row 0
   lcd.print("Connecting");
