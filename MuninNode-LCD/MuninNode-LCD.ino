@@ -78,6 +78,7 @@ const char* ssid = WIFI_SSID;
 const char* password = WIFI_PASSWD;
 
 int buttonState=0;
+int lastButtonState=0;
 int buttonTime=0;
 int buttonPressed=0;
 
@@ -150,6 +151,22 @@ void printResolution(DeviceAddress deviceAddress)
 //  Serial.print("Resolution: ");
 //  Serial.print(DS18B20.getResolution(deviceAddress));
 //  Serial.println();    
+}
+
+void checkButton() {
+  buttonState=digitalRead(BUTTON_PIN);
+  if (buttonState != lastButtonState) { 
+    if (buttonState==LOW) {
+      buttonTime=millis64();
+      lcd.backlight();
+      buttonPressed++;
+    }
+  }
+  lastButtonState = buttonState;
+  
+  if (buttonTime + TIMEOUT < millis64()) {
+    lcd.noBacklight();
+  }
 }
 
 void setup() {
@@ -233,15 +250,7 @@ void setup() {
 }
 
 void loop() {
-  buttonState=digitalRead(BUTTON_PIN);
-  if (buttonState==LOW) {
-    buttonTime=millis64();
-    lcd.backlight();
-    buttonPressed++;
-  }
-  if (buttonTime + TIMEOUT < millis64()) {
-    lcd.noBacklight();
-  }
+  checkButton();
   // listen for incoming clients
   WiFiClient client = server.available();
   if (client) {
@@ -252,6 +261,7 @@ void loop() {
     client.print(FString("# munin node at ") + nodename + '\n');
 
     while (client.connected()) {
+      checkButton();
       if (client.available()) {
 #if DEBUG
         //Serial.println("readString...");
@@ -319,7 +329,7 @@ void loop() {
             String payload = http.getString();   //Get the request response payload
             //Serial.println(payload);             //Print the response payload
             lcd.setCursor(3, 0);
-            lcd.print(payload + "C");
+            lcd.print(payload);
 
 
           }
