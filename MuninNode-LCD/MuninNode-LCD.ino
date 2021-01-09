@@ -69,12 +69,13 @@
 
 LiquidCrystal_I2C lcd(0x38, 16, 2);  // Configure LiquidCrystal_I2C library with 0x38 address, 16 columns and 2 rows
 
+// Change as your needs in credentials.h!
+#include "credentials.h"
 
-// Change as your needs!
-String nodename = "esp8266";
+String nodename = NODE_NAME;
 #define MAX_SRV_CLIENTS 1
-const char* ssid = "*******";
-const char* password = "**********";
+const char* ssid = WIFI_SSID;
+const char* password = WIFI_PASSWD;
 
 int buttonState=0;
 int buttonTime=0;

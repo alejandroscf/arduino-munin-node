@@ -38,12 +38,13 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
+// Change as your needs in credentials.h!
+#include "credentials.h"
 
-// Change as your needs!
-String nodename = "esp8266";
+String nodename = NODE_NAME;
 #define MAX_SRV_CLIENTS 1
-const char* ssid = "*******";
-const char* password = "**********";
+const char* ssid = WIFI_SSID;
+const char* password = WIFI_PASSWD;
 
 // Initialize the esp8266 server library
 // with the IP address and port you want to use
